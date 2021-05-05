@@ -2,7 +2,8 @@
 
 includes
 - changes by ZhabaBun - https://github.com/ZhabaBun/mpy_bme280_esp8266
-- my changes (delay i2c bus scan until first measurement
+- my changes:
+  - delay i2c bus access until first measurement
 
 ## note from peterhinch
 
