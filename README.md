@@ -1,5 +1,11 @@
 # This fork
 
+includes
+- changes by ZhabaBun - https://github.com/ZhabaBun/mpy_bme280_esp8266
+- my changes (delay i2c bus scan until first measurement
+
+## note from peterhinch
+
 I created this to raise a [PR](https://github.com/catdog2/mpy_bme280_esp8266/pull/9)
 against the master. Unfortunately the master seems to have been abandoned. My PR and
 other apparently good ones have been ignored. Please read the PR's epecially
