@@ -50,9 +50,7 @@ BME280_OSAMPLE_16 = const(5)
 BME280_REGISTER_CONTROL_HUM = const(0xF2)
 BME280_REGISTER_CONTROL = const(0xF4)
 
-
 class BME280:
-
     def __init__(self,
                  mode=BME280_OSAMPLE_1,
                  address=None,
@@ -64,8 +62,10 @@ class BME280:
                 'BME280_OSAMPLE_1, BME280_OSAMPLE_2, BME280_OSAMPLE_4, '
                 'BME280_OSAMPLE_8 or BME280_OSAMPLE_16'.format(mode))
         self._mode = mode
+        self._have_calibration = False
         if i2c is None:
             raise ValueError('An I2C object is required.')
+        self.i2c = i2c
         if address is not None:
             self.address = address
         else:
@@ -73,11 +73,18 @@ class BME280:
             if len(addr) == 0:
                 raise RuntimeError('No BME280 found.')
             self.address = addr[0]  # 1st device found
-        self.i2c = i2c
 
+        self.t_fine = 0
+
+        # temporary data holders which stay allocated
+        self._l1_barray = bytearray(1)
+        self._l8_barray = bytearray(8)
+        self._l3_resultarray = array("i", [0, 0, 0])
+
+    def _load_calibration(self):
         # load calibration data
-        dig_88_a1 = i2c.readfrom_mem(self.address, 0x88, 26)
-        dig_e1_e7 = i2c.readfrom_mem(self.address, 0xE1, 7)
+        dig_88_a1 = self.i2c.readfrom_mem(self.address, 0x88, 26)
+        dig_e1_e7 = self.i2c.readfrom_mem(self.address, 0xE1, 7)
         self.dig_T1, self.dig_T2, self.dig_T3, self.dig_P1, \
             self.dig_P2, self.dig_P3, self.dig_P4, self.dig_P5, \
             self.dig_P6, self.dig_P7, self.dig_P8, self.dig_P9, \
@@ -92,14 +99,9 @@ class BME280:
 
         self.dig_H6 = unpack_from("<b", dig_e1_e7, 6)[0]
 
-        i2c.writeto_mem(self.address, BME280_REGISTER_CONTROL,
+        self.i2c.writeto_mem(self.address, BME280_REGISTER_CONTROL,
                              bytearray([0x3F]))
-        self.t_fine = 0
-
-        # temporary data holders which stay allocated
-        self._l1_barray = bytearray(1)
-        self._l8_barray = bytearray(8)
-        self._l3_resultarray = array("i", [0, 0, 0])
+        self._have_calibration = True
 
     def read_raw_data(self, result):
         """ Reads the raw (uncompensated) data from the sensor.
@@ -110,6 +112,8 @@ class BME280:
             Returns:
                 None
         """
+        if not self._have_calibration:
+            self._load_calibration()
 
         self._l1_barray[0] = self._mode
         self.i2c.writeto_mem(self.address, BME280_REGISTER_CONTROL_HUM,
